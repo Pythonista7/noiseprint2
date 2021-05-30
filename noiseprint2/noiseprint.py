@@ -93,7 +93,7 @@ class NoiseprintEngine:
     def _predict_large(self, img):
         # prepare output array
         res = np.zeros((img.shape[0], img.shape[1]), np.float32)
-
+                
         # iterate over x and y, strides = self.slide, window size = self.slide+2*self.overlap
         for x in range(0, img.shape[0], self.slide):
             x_start = x - self.overlap
