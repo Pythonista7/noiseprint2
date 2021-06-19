@@ -24,11 +24,25 @@ services:
 
   redis:
     image: redis:latest
+    container_name: redis
+    hostname: redis
     ports:
       - "6379:6379"
     volumes:
       - /mnt/redis/data:/data
     command: redis-server --appendonly yes
+    networks:
+      - app
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    restart: always
+    environment:
+    - REDIS_HOSTS=local:redis:6379
+    ports:
+    - "8081:8081"
     networks:
       - app
 
@@ -44,7 +58,7 @@ services:
       - app
 
   milvus_admin:
-    image: milvusdb/milvus-admin:v0.2.0
+    image: milvusdb/milvus-em:v0.4.2
     ports: 
       - "3000:80"
     networks:
