@@ -87,6 +87,6 @@ class BatchProcess():
 
 if __name__ == '__main__':
     job = BatchProcess()
-    #job.start("HTC-1-M7/", 5)
-    #job.start("Motorola-X/", 5)
+    job.start("HTC-1-M7/", 5)
+    job.start("Motorola-X/", 5)
     job.search_job("Motorola-X/")
