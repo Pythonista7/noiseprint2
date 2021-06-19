@@ -24,7 +24,7 @@ def show_images(images):
 if __name__ == '__main__':
     args = parser.parse_args()
     from noiseprint2 import gen_noiseprint, normalize_noiseprint
-
+    
     path = args.input
     input_image = np.asarray(Image.open(path))
     noiseprint = gen_noiseprint(path, quality=args.quality)
