@@ -1,3 +1,4 @@
+import milvus
 import numpy as np
 from PIL import Image, ImageOps
 import os
@@ -15,6 +16,7 @@ docker run --rm --name redis-commander -d \
   -p 8081:8081 \
   rediscommander/redis-commander:latest
 """
+
 
 class BatchProcess():
     def __init__(self) -> None:
@@ -45,8 +47,7 @@ class BatchProcess():
         return img[starty:starty+cropy, startx:startx+cropx]
 
     def transform(self, noiseprint):
-        sample = self.crop_center(noiseprint)
-        converted_data = self._pca.fit_transform(sample).flatten()
+        converted_data = self._pca.fit_transform(noiseprint).flatten()
         print("Shape of pca :", converted_data.shape)
         return converted_data
 
@@ -56,9 +57,9 @@ class BatchProcess():
         res_vec = []
         res_filename = []
         for img in ls:
-            input_image = np.asarray(ImageOps.grayscale(
+            input_image = self.crop_center(np.asarray(ImageOps.grayscale(
                 Image.open(self._path+folder+img))
-            )
+            ))
             noiseprint = self._engine.predict(input_image)
             print("Shape of Noiseprint : ", noiseprint.shape)
             vec = self.transform(noiseprint)
@@ -74,7 +75,18 @@ class BatchProcess():
         for mid, fname in zip(milvus_id[1], res_filename):
             self._r.set(mid, fname)
 
+    def search_job(self,folder):
+        ls = random.sample(os.listdir(self._path+folder), 1)
+        input_image = self.crop_center(np.asarray(ImageOps.grayscale(
+                Image.open(self._path+folder+ls[0]))
+            ))
+        noiseprint = self._engine.predict(input_image)
+        query_vec=self.transform(noiseprint)
+        res = self._milvus.search(self._collection_name,5,[query_vec.tolist()])
+        print("SEARCH RESULT : ",res)
 
 if __name__ == '__main__':
     job = BatchProcess()
-    job.start("HTC-1-M7/", 1)
+    #job.start("HTC-1-M7/", 5)
+    #job.start("Motorola-X/", 5)
+    job.search_job("Motorola-X/")
