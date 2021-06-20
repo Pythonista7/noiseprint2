@@ -10,7 +10,13 @@ Original repo: [https://github.com/grip-unina/noiseprint](https://github.com/gri
 
 Original paper: [http://doi.org/10.1109/TIFS.2019.2916364](http://doi.org/10.1109/TIFS.2019.2916364)
 
-## Installation
+
+## Windows Installation 
+
+```bash
+"C:\Program Files\Docker\Docker\DockerCli.exe" -SwitchDaemon
+docker-compose up --build
+```
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install noiseprint2.
 
