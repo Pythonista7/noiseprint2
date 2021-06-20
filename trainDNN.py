@@ -27,6 +27,7 @@ pip install -U tensorflow-addons
 
 """
 ## Setup
+tensorboard --logdir=data/ --port=8088
 """
 
 import numpy as np
@@ -36,9 +37,11 @@ from tensorflow.keras import layers
 import tensorflow_addons as tfa
 
 from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import OneHotEncoder
 
-
+import datetime
 """
+
 ## Prepare the data
 """
 
@@ -47,8 +50,10 @@ input_shape = (256, 256, 3)
 
 # (x_train, y_train), (x_test, y_test) 
 
+OneHotEncoder
+
 X = np.load("../dat/X_train.npy")
-y = np.load("../dat/y.npy")
+y = np.load("../dat/label_y.npy")
 
 x_train, x_test,y_train, y_test = train_test_split(X,y,test_size=0.4)
 
@@ -63,8 +68,8 @@ print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape}")
 
 learning_rate = 0.001
 weight_decay = 0.0001
-batch_size = 1
-num_epochs = 3
+batch_size = 16
+num_epochs = 50
 image_size = 72  # We'll NOT be resize input images to this size
 patch_size = 50  # Size of the patches to be extract from the input images
 num_patches = (image_size // patch_size) ** 2
@@ -291,6 +296,10 @@ def run_experiment(model):
         save_weights_only=True,
     )
 
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
+
+
     print("Running model.fit ...")
     history = model.fit(
         x=x_train,
@@ -298,7 +307,7 @@ def run_experiment(model):
         batch_size=batch_size,
         epochs=num_epochs,
         validation_split=0.4,
-        callbacks=[checkpoint_callback],
+        callbacks=[checkpoint_callback,tensorboard_callback],
     )
 
     model.load_weights(checkpoint_filepath)
