@@ -14,6 +14,8 @@ import redis
 from tqdm import tqdm
 from collections import Counter
 
+from util import crop_center
+
 class BatchProcess():
     def __init__(self) -> None:
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -34,18 +36,7 @@ class BatchProcess():
         self._wrong = 0
         self.topk=5
 
-    def crop_center(self, img, cropx=700, cropy=700):
-        y, x = img.shape
-        low = min(x, y)
-        if low < 700:
-            print("UNDER 700 image crop")
-            cropx = low
-            cropy = low
-
-        startx = x//2-(cropx//2)
-        starty = y//2-(cropy//2)
-        return img[starty:starty+cropy, startx:startx+cropx]
-
+   
     def transform(self, noiseprint):
         converted_data = self._pca.fit_transform(noiseprint).flatten()
         # print("Shape of pca :", converted_data.shape)
@@ -57,7 +48,7 @@ class BatchProcess():
         res_vec = []
         res_filename = []
         for img in tqdm(ls):
-            input_image = self.crop_center(np.asarray(ImageOps.grayscale(
+            input_image = crop_center(np.asarray(ImageOps.grayscale(
                 Image.open(self._path+folder+"/"+img))
             ))
             noiseprint = self._engine.predict(input_image)
@@ -79,7 +70,7 @@ class BatchProcess():
         folder = random.sample(folders, 1)[0]
         # print("Predicting for Target Label - ", folder)
         ls = random.sample(os.listdir(self._path+folder), 1)
-        input_image = self.crop_center(np.asarray(ImageOps.grayscale(
+        input_image = crop_center(np.asarray(ImageOps.grayscale(
             Image.open(self._path+folder+"/"+ls[0]))
         ))
         noiseprint = self._engine.predict(input_image)
