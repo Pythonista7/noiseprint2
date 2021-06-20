@@ -112,17 +112,13 @@ class BatchProcess():
     
     def evalTargetClass(self,topk):
         topk_labels = []
-        print("TOPK = ",topk)
         for k in topk:
-            print("k=",k.id)
             label = self._r.get(k.id)
-            print(label)
             label = label.decode('utf-8').split("/")[0]
             print("Label : ",label)
             topk_labels.append(label)
 
         top = Counter(topk_labels).most_common()
-        print("TOP = ",topk_labels)
         return top[0][0]
 
 
