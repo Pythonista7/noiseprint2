@@ -17,13 +17,13 @@ import json
 
 class BatchProcess():
     def __init__(self) -> None:
-        physical_devices = tf.config.experimental.list_physical_devices('GPU')
-        if len(physical_devices) > 0:
-            print(tf.config.experimental.set_memory_growth(
-                physical_devices[0], True))
+        # physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        # if len(physical_devices) > 0:
+        #     print(tf.config.experimental.set_memory_growth(
+        #         physical_devices[0], True))
         # init milvus
         self._milvus = Milvus(host='127.0.0.1', port=19530)
-        self._collection_name = "pca_1000"
+        self._collection_name = "sample_100_test_100_pca_1000"
         self._path = "C:/users/vidhya/data/train/"
         self._milvus_dimension = 1000  # Change accrodingly wrt transform
         self._engine = NoiseprintEngine()
@@ -49,12 +49,12 @@ class BatchProcess():
 
     def transform(self, noiseprint):
         converted_data = self._pca.fit_transform(noiseprint).flatten()
-        print("Shape of pca :", converted_data.shape)
+        print("\nShape of pca :", converted_data.shape)
         return converted_data
 
     def start(self, folder, limit):
         ls = random.sample(os.listdir(self._path+folder), limit)
-        print("Processing " + folder + " : " + str(ls))
+        print("\nProcessing " + folder + " : " + str(ls))
         res_vec = []
         res_filename = []
         for img in tqdm(ls):
@@ -74,21 +74,19 @@ class BatchProcess():
         for mid, fname in zip(milvus_id[1], res_filename):
             self._r.set(mid, fname)
 
-        print(f"{folder} is now complete ! \n\n\n\n\n")
+        print(f"\n{folder} is now complete ! \n\n\n\n\n")
 
-    def search_job(self, folders=["htc_m7", "iphone_4s", "iphone_6", "moto_maxx", "moto_x","nexus_5x","nexus_6","samsung_note3","samsung_s4","sony_nex7"]):
-        folder = random.sample(folders, 1)[0]
+    def search_job(self, image):
+        #folder = random.sample(folders, 1)[0]
         # print("Predicting for Target Label - ", folder)
-        ls = random.sample(os.listdir(self._path+folder), 1)
-        input_image = self.crop_center(np.asarray(ImageOps.grayscale(
-            Image.open(self._path+folder+"/"+ls[0]))
-        ))
+        #ls = random.sample(os.listdir(self._path+image), 1)
+        input_image = self.crop_center(np.asarray(ImageOps.grayscale((np.asarray(image)))))
         noiseprint = self._engine.predict(input_image)
-        self.evaluateTopk(noiseprint,folder)
+        self.evaluateTopk(noiseprint,image)
         
 
     def evaluateTopk(self, noiseprint,target):
-        print("evaluating topk for image of shape ",noiseprint.shape)
+        print("\nevaluating topk for image of shape ",noiseprint.shape)
         query_vec = self.transform(noiseprint)
         status, res = self._milvus.search(
             self._collection_name, self.topk, [query_vec.tolist()]
@@ -126,35 +124,31 @@ class BatchProcess():
         print("TOP = ",topk_labels)
         return top[0][0]
 
-    def jsonlog(self,test_size,sample_size, res, score, accuracy, folders=["htc_m7", "iphone_4s", "iphone_6", "moto_maxx", "moto_x","nexus_5x","nexus_6","samsung_note3","samsung_s4","sony_nex7"]):
+    def jsonlog(self,test_size,sample_size, res, score, accuracy, folders=["htc_m7", "iphone_4s", "iphone_6", "motorola_droid_maxx", "moto_x","nexus_5x","motorola_nexus_6","samsung_note3","samsung_galaxy_s4","sony_nex7"]):
         diction = dict([("milvus_collection",self._collection_name), ("topk",self.topk),("pca_dimension",self._milvus_dimension),("sample_size",sample_size),("test_size",test_size),("score",score),("accuracy", accuracy), ("classes", folders),("test_log",res)])
-        #print(diction)
-        #jsonstring = json.dumps(diction, indent = 4)
-        #print(jsonstring)
-        with open(self._collection_name+".txt",'w') as outfile:
+        with open(self._collection_name+".txt",'a') as outfile:
             json.dump(diction,outfile)
-            #json.dump(json.dumps(diction,indent=5), outfile)
 
 
-if __name__ == '__main__':
+def start_search(image):
     job = BatchProcess()
-    sample_size = 5
+    sample_size = 100
     # job.start("htc_m7/", sample_size)
     # job.start("iphone_4s/", sample_size)
     # job.start("iphone_6/", sample_size)
-    # job.start("moto_maxx/", sample_size)
-    # job.start("moto_x/", sample_size)        
+    # job.start("motorola_droid_maxx/", sample_size)
+    # job.start("moto_x/", sample_size)
     # job.start("nexus_5x/", sample_size)
-    # job.start("nexus_6/", sample_size)
+    # job.start("motorola_nexus_6/", sample_size)
     # job.start("samsung_note3/", sample_size)
-    # job.start("samsung_s4/", sample_size)
+    # job.start("samsung_galaxy_s4/", sample_size)
     # job.start("sony_nex7/", sample_size)
-    test_size = 2
-    for i in range(test_size):
-        job.search_job()
-    print("FINAL RESULTS \n Target Label,Predicted Label")
+    
+    test_size = 100
+    job.search_job(image)
+    print("FINAL RESULTS \n Target Label , Predicted Label")
     for res in tqdm(job._cache):
-        print(res)
+        print("\n",res)
     
     score = job._correct/(job._correct+job._wrong)
     accuracy = job._correct/(job._correct+job._wrong)
