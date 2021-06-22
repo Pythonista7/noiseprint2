@@ -2,3 +2,4 @@
 *.npy
 *.png
 temp/
+logs/
