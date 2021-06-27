@@ -48,7 +48,7 @@ import datetime
 """
 
 num_classes = 10
-input_shape = (256, 256, 3)
+input_shape = (256, 256, 1)
 
 # (x_train, y_train), (x_test, y_test) 
 
@@ -298,7 +298,7 @@ def run_experiment(model):
         save_weights_only=True,
     )
 
-    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/fit/vit-only-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 

@@ -1,15 +1,21 @@
+import datetime
 import logging
 
 from PIL import Image
+from tensorflow.python.keras.backend import resize_images
+from tensorflow.python.keras.engine.input_layer import Input, InputLayer
 from tensorflow.python.keras.layers import Conv2D, BatchNormalization, Activation
 
 import os
 import tensorflow as tf
 import numpy as np
+from tensorflow.python.keras.layers.convolutional import Cropping2D
 from tensorflow.python.keras.models import Model
+from sklearn.model_selection import train_test_split 
 
 from noiseprint2.utility import jpeg_quality_of_file
 
+from trainViT import create_vit_classifier
 
 # Bias layer necessary because noiseprint applies bias after batch-normalization.
 class BiasLayer(tf.keras.layers.Layer):
@@ -31,7 +37,8 @@ def _full_conv_net(num_levels=17, padding='SAME'):
     filters_num = [64, ] * (num_levels - 1) + [1, ]
     batch_norm = [False, ] + [True, ] * (num_levels - 2) + [False, ]
 
-    inp = tf.keras.layers.Input([None, None, 1])
+    grayscaleLayer = tf.image.rgb_to_grayscale()
+    inp = tf.keras.layers.Input([None, None, 1])(grayscaleLayer)
     model = inp
 
     for i in range(num_levels):
@@ -54,6 +61,14 @@ def setup_session():
     tf.compat.v1.keras.backend.set_session(session)
 
 
+def addEnsenble(model):
+    model.trainable = False
+    model = InputLayer([None, None, 1])(model)
+    model = Cropping2D(cropping=256)(model)
+    vit = create_vit_classifier()
+    model = model(vit)
+    return model
+
 class NoiseprintEngine:
     _save_path = os.path.join(os.path.dirname(__file__), './weights/net_jpg%d/')
     slide = 1024  # 3072
@@ -61,11 +76,58 @@ class NoiseprintEngine:
     overlap = 34
     setup_on_init = True
 
-    def __init__(self):
+    def __init__(self,train=False):
         self._model = _full_conv_net()
-        self._loaded_quality = None
+        self._loaded_quality = 90
+        checkpoint = self._save_path % self._loaded_quality
+        self._model.load_weights(checkpoint)
+        self._model = addEnsenble(self._model)
         if self.setup_on_init:
             setup_session()
+            if train==True :
+                self.train_ensemble
+
+    def train_ensemble(self):
+        X = np.load("../dat/X_train.npy")
+        y = np.load("../dat/label_y.npy")
+
+        x_train, x_test,y_train, y_test = train_test_split(X,y,test_size=0.4)
+
+        print(f"x_train shape: {x_train.shape} - y_train shape: {y_train.shape}")
+        print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape}")
+
+        print("Creating checkpoints .. ")
+        checkpoint_filepath = "/tmp/checkpoint"
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            checkpoint_filepath,
+            monitor="val_accuracy",
+            save_best_only=True,
+            save_weights_only=True,
+        )
+
+        log_dir = "logs/fit/ensemble1-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
+
+
+        print("Running model.fit ...")
+        history = self._model.fit(
+            x=x_train,
+            y=y_train,
+            batch_size=32,
+            epochs=1,
+            validation_split=0.33,
+            callbacks=[checkpoint_callback,tensorboard_callback],
+        )
+
+        self._model.load_weights(checkpoint_filepath)
+
+        print(f"Running test")
+        _, accuracy, top_5_accuracy = self._model.evaluate(x_test, y_test)
+        print(f"Test accuracy: {round(accuracy * 100, 2)}%")
+        print(f"Test top 5 accuracy: {round(top_5_accuracy * 100, 2)}%")
+        
+        
+        return history
 
     def load_quality(self, quality):
         """
