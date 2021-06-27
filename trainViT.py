@@ -27,7 +27,7 @@ pip install -U tensorflow-addons
 
 """
 ## Setup
-tensorboard --logdir=data/ --port=8088
+tensorboard --logdir=logs/ --port=8088
 """
 
 import numpy as np
@@ -35,6 +35,8 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 import tensorflow_addons as tfa
+from PIL import Image
+import pandas as pd
 
 from sklearn.model_selection import train_test_split 
 from sklearn.preprocessing import OneHotEncoder
@@ -68,18 +70,18 @@ print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape}")
 
 learning_rate = 0.001
 weight_decay = 0.0001
-batch_size = 16
-num_epochs = 50
+batch_size = 128
+num_epochs = 100
 image_size = 72  # We'll NOT be resize input images to this size
 patch_size = 50  # Size of the patches to be extract from the input images
 num_patches = (image_size // patch_size) ** 2
-projection_dim = 8
-num_heads = 2
+projection_dim = 32
+num_heads = 4
 transformer_units = [
     projection_dim * 2,
     projection_dim,
 ]  # Size of the transformer layers
-transformer_layers = 1
+transformer_layers = 4
 mlp_head_units = [2048, 1024]  # Size of the dense layers of the final classifier
 
 # physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -317,11 +319,63 @@ def run_experiment(model):
     print(f"Test accuracy: {round(accuracy * 100, 2)}%")
     print(f"Test top 5 accuracy: {round(top_5_accuracy * 100, 2)}%")
 
+
     return history
+
+
+def read_and_resize(filepath):
+    im_array = np.array(Image.open((filepath)), dtype="uint8")
+    pil_im = Image.fromarray(im_array)
+    new_array = np.array(pil_im.resize((256, 256)))
+    print("Preprocessed image shape = ",new_array.shape)
+    return new_array/255
+
+
+def label_transform(labels):
+    labels = pd.get_dummies(pd.Series(labels))
+    label_index = labels.columns.values
+    return labels, label_index
+
+
+def preprocess_input(img_path):
+    img = read_and_resize(img_path)
+    return img
+
+list_classes = ['HTC-1-M7', 'LG-Nexus-5x', 'Motorola-Droid-Maxx', 'Motorola-Nexus-6',
+ 'Motorola-X' ,'Samsung-Galaxy-Note3' ,'Samsung-Galaxy-S4' ,'Sony-NEX-7',
+ 'iPhone-4s', 'iPhone-6']
+
+def infer():
+    checkpoint_filepath = "/tmp/checkpoint"
+    model = create_vit_classifier()
+    model.load_weights(checkpoint_filepath)
+    optimizer = tfa.optimizers.AdamW(
+        learning_rate=learning_rate, weight_decay=weight_decay
+    )
+    print("Optimizer is ready .. ")
+
+    model.compile(
+        optimizer=optimizer,
+        loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+        metrics=[
+            keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
+            keras.metrics.SparseTopKCategoricalAccuracy(
+                5, name="top-5-accuracy"),
+        ],
+    )
+    print("weights loaded and model is compiled ....")
+    sample = preprocess_input(
+        "/home/ash/Desktop/7thSem/7thsem/FinalYearProj/exp/(MotoMax)1.jpg")
+    #logits = model.evaluate(x=np.reshape(sample,(1,256,256,3)), y= np.array([5]))
+    logits = model.predict(x=np.reshape(sample,(1,256,256,3)))
+    print(np.argmax(logits[0]))
+    print(list_classes[np.argmax(logits[0])-1])
+
 
 setup_session()
 vit_classifier = create_vit_classifier()
 history = run_experiment(vit_classifier)
+#infer()
 
 
 """
