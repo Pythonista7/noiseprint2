@@ -227,7 +227,7 @@ def create_vit_classifier():
     print("Init input layer")
     inputs = layers.Input(shape=input_shape)
     # No Augment data.
-    # augmented = data_augmentation(inputs)
+    #augmented = data_augmentation(inputs)
     # Create patches.
     patches = Patches(patch_size)(inputs)
     print("Init patch encode layer")
@@ -373,8 +373,8 @@ def infer():
 
 
 setup_session()
-vit_classifier = create_vit_classifier()
-history = run_experiment(vit_classifier)
+#vit_classifier = create_vit_classifier()
+#history = run_experiment(vit_classifier)
 #infer()
 
 
