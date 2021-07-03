@@ -6,16 +6,16 @@ from tensorflow import keras
 
 from trainViT import setup_session, create_vit_classifier
 
-list_classes = ['Sony-NEX-7',
-                'Motorola-X',
-                'HTC-1-M7',
+list_classes = ['iPhone-4s',
+                'Sony-NEX-7',
+                'iPhone-6',
                 'Samsung-Galaxy-Note3',
                 'Motorola-Droid-Maxx',
-                'iPhone-4s',
-                'iPhone-6',
-                'LG-Nexus-5x',
+                'Motorola-Nexus-6',
                 'Samsung-Galaxy-S4',
-                'Motorola-Nexus-6']
+                'LG-Nexus-5x',
+                'Motorola-X',
+                'HTC-1-M7']
 
 
 def read_and_resize(filepath):
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     model = create_vit_classifier()
     model.load_weights(checkpoint_filepath)
     optimizer = tfa.optimizers.AdamW(
-        learning_rate=learning_rate, weight_decay=weight_decay
+        learning_rate=0.001, weight_decay=0.0001
     )
     print("Optimizer is ready .. ")
 

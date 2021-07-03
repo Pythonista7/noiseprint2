@@ -30,6 +30,14 @@ pip install -U tensorflow-addons
 tensorboard --logdir=logs/ --port=8088
 """
 
+
+"""
+
+## Prepare the data
+"""
+
+import datetime
+from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -37,27 +45,18 @@ from tensorflow.keras import layers
 import tensorflow_addons as tfa
 from PIL import Image
 import pandas as pd
-
-from sklearn.model_selection import train_test_split 
-from sklearn.preprocessing import OneHotEncoder
-
-import datetime
-"""
-
-## Prepare the data
-"""
-
+from sklearn.model_selection import train_test_split
 num_classes = 10
 input_shape = (256, 256, 3)
 
-# (x_train, y_train), (x_test, y_test) 
+# (x_train, y_train), (x_test, y_test)
 
 OneHotEncoder
 
 X = np.load("../dat/X_train.npy")
 y = np.load("../dat/label_y.npy")
 
-x_train, x_test,y_train, y_test = train_test_split(X,y,test_size=0.4)
+x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
 
 
 print(f"x_train shape: {x_train.shape} - y_train shape: {y_train.shape}")
@@ -71,8 +70,8 @@ print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape}")
 learning_rate = 0.001
 weight_decay = 0.0001
 batch_size = 128
-num_epochs = 100
-image_size = 72  # We'll NOT be resize input images to this size
+num_epochs = 70
+image_size = 256  # We'll NOT be resize input images to this size
 patch_size = 50  # Size of the patches to be extract from the input images
 num_patches = (image_size // patch_size) ** 2
 projection_dim = 32
@@ -82,7 +81,8 @@ transformer_units = [
     projection_dim,
 ]  # Size of the transformer layers
 transformer_layers = 4
-mlp_head_units = [2048, 1024]  # Size of the dense layers of the final classifier
+# Size of the dense layers of the final classifier
+mlp_head_units = [2048, 1024]
 
 # physical_devices = tf.config.experimental.list_physical_devices('GPU')
 # if len(physical_devices) > 0:
@@ -99,7 +99,7 @@ def setup_session():
     session = tf.compat.v1.Session(config=config)
     tf.compat.v1.keras.backend.set_session(session)
     tf.compat.v1.keras.backend.set_session
-    
+
 # # Data aug - Mainly resizing
 
 # data_augmentation = keras.Sequential(
@@ -131,6 +131,7 @@ def mlp(x, hidden_units, dropout_rate):
 """
 ## Implement patch creation as a layer
 """
+
 
 class Patches(layers.Layer):
     def __init__(self, patch_size):
@@ -258,7 +259,8 @@ def create_vit_classifier():
     representation = layers.Dropout(0.5)(representation)
 
     # Add MLP.
-    features = mlp(representation, hidden_units=mlp_head_units, dropout_rate=0.5)
+    features = mlp(representation, hidden_units=mlp_head_units,
+                   dropout_rate=0.5)
 
     # Classify outputs.
     logits = layers.Dense(num_classes)(features)
@@ -283,11 +285,11 @@ def run_experiment(model):
         loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=[
             keras.metrics.SparseCategoricalAccuracy(name="accuracy"),
-            keras.metrics.SparseTopKCategoricalAccuracy(5, name="top-5-accuracy"),
+            keras.metrics.SparseTopKCategoricalAccuracy(
+                5, name="top-5-accuracy"),
         ],
     )
     print("Model is complied ")
-
 
     print("Creating checkpoints .. ")
     checkpoint_filepath = "/tmp/checkpoint"
@@ -298,9 +300,8 @@ def run_experiment(model):
         save_weights_only=True,
     )
 
-    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/fit/vit-v1" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
-
 
     print("Running model.fit ...")
     history = model.fit(
@@ -308,8 +309,8 @@ def run_experiment(model):
         y=y_train,
         batch_size=batch_size,
         epochs=num_epochs,
-        validation_split=0.4,
-        callbacks=[checkpoint_callback,tensorboard_callback],
+        validation_split=0.3,
+        callbacks=[checkpoint_callback, tensorboard_callback],
     )
 
     model.load_weights(checkpoint_filepath)
@@ -319,7 +320,6 @@ def run_experiment(model):
     print(f"Test accuracy: {round(accuracy * 100, 2)}%")
     print(f"Test top 5 accuracy: {round(top_5_accuracy * 100, 2)}%")
 
-
     return history
 
 
@@ -327,7 +327,7 @@ def read_and_resize(filepath):
     im_array = np.array(Image.open((filepath)), dtype="uint8")
     pil_im = Image.fromarray(im_array)
     new_array = np.array(pil_im.resize((256, 256)))
-    print("Preprocessed image shape = ",new_array.shape)
+    print("Preprocessed image shape = ", new_array.shape)
     return new_array/255
 
 
@@ -341,9 +341,18 @@ def preprocess_input(img_path):
     img = read_and_resize(img_path)
     return img
 
-list_classes = ['HTC-1-M7', 'LG-Nexus-5x', 'Motorola-Droid-Maxx', 'Motorola-Nexus-6',
- 'Motorola-X' ,'Samsung-Galaxy-Note3' ,'Samsung-Galaxy-S4' ,'Sony-NEX-7',
- 'iPhone-4s', 'iPhone-6']
+
+list_classes = ['iPhone-4s',
+                'Sony-NEX-7',
+                'iPhone-6',
+                'Samsung-Galaxy-Note3',
+                'Motorola-Droid-Maxx',
+                'Motorola-Nexus-6',
+                'Samsung-Galaxy-S4',
+                'LG-Nexus-5x',
+                'Motorola-X',
+                'HTC-1-M7']
+
 
 def infer():
     checkpoint_filepath = "/tmp/checkpoint"
@@ -367,7 +376,7 @@ def infer():
     sample = preprocess_input(
         "/home/ash/Desktop/7thSem/7thsem/FinalYearProj/exp/(MotoMax)1.jpg")
     #logits = model.evaluate(x=np.reshape(sample,(1,256,256,3)), y= np.array([5]))
-    logits = model.predict(x=np.reshape(sample,(1,256,256,3)))
+    logits = model.predict(x=np.reshape(sample, (1, 256, 256, 3)))
     print(np.argmax(logits[0]))
     print(list_classes[np.argmax(logits[0])-1])
 
@@ -375,7 +384,7 @@ def infer():
 setup_session()
 vit_classifier = create_vit_classifier()
 history = run_experiment(vit_classifier)
-#infer()
+infer()
 
 
 """
