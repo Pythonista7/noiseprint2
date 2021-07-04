@@ -60,7 +60,7 @@ x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.4)
 
 
 print(f"x_train shape: {x_train.shape} - y_train shape: {y_train.shape}")
-print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape}")
+print(f"x_test shape: {x_test.shape} - y_test shape: {y_test.shape} ")
 
 
 """
@@ -320,6 +320,7 @@ def run_experiment(model):
     print(f"Test accuracy: {round(accuracy * 100, 2)}%")
     print(f"Test top 5 accuracy: {round(top_5_accuracy * 100, 2)}%")
 
+    model.save("../proj-models/")
     return history
 
 
