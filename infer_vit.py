@@ -1,10 +1,11 @@
 import numpy as np
 from PIL import Image
+from numpy.core.fromnumeric import shape
 import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
+import tensorflow_addons as tfa
 
-from trainViT import setup_session, create_vit_classifier
 
 list_classes = ['iPhone-4s',
                 'Sony-NEX-7',
@@ -21,8 +22,8 @@ list_classes = ['iPhone-4s',
 def read_and_resize(filepath):
     im_array = np.array(Image.open((filepath)), dtype="uint8")
     pil_im = Image.fromarray(im_array)
-    new_array = np.array(pil_im.resize((256, 256)))
-    return new_array/255
+    new_array = np.array(pil_im.resize((256, 256)))/255
+    return new_array.reshape((1,256,256,3))
 
 
 def label_transform(labels):
@@ -37,9 +38,7 @@ def preprocess_input(img_path):
 
 
 if __name__ == '__main__':
-    checkpoint_filepath = "/tmp/checkpoint"
-    model = create_vit_classifier()
-    model.load_weights(checkpoint_filepath)
+    model = keras.models.load_model("../proj-models/vit-v1")
     optimizer = tfa.optimizers.AdamW(
         learning_rate=0.001, weight_decay=0.0001
     )
@@ -57,5 +56,8 @@ if __name__ == '__main__':
     print("weights loaded")
     sample = preprocess_input(
         "/home/ash/Desktop/7thSem/7thsem/FinalYearProj/exp/data/iPhone-4s/14-b20.jpg")
-    logits = model.evaluate(x=sample, batch_size=1)
-    print(logits)
+    print(sample.shape)
+    logits = model.predict(sample)
+    print(np.argmax(logits[0]))
+    print(list_classes[np.argmax(logits[0])-1])
+    [print(list_classes[i],logits[0][i]) for i in range(len(logits[0]))]
