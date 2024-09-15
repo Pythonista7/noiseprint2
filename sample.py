@@ -18,16 +18,17 @@ def show_images(images):
         f.add_subplot(1, n, i + 1)
         plt.axis("off")
         plt.imshow(images[i], cmap='gray')
-    plt.show(block=True)
+    plt.savefig("res.png")
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
     from noiseprint2 import gen_noiseprint, normalize_noiseprint
-
+    
     path = args.input
     input_image = np.asarray(Image.open(path))
     noiseprint = gen_noiseprint(path, quality=args.quality)
+    
     if args.save is not None:
         np.save(args.save, noiseprint)
     if args.show:
